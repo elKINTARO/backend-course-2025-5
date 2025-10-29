@@ -11,3 +11,16 @@ curl -X DELETE http://localhost:3000/200  ---> OK
 curl http://localhost:3000/200  ---> not found
 6. неіснуючий у коді метод пост
 curl -X POST http://localhost:3000/200  ---> method not allowed
+Тест для третьої частини лабки
+1.Отримати картинку з сайту(немає в кеші)
+curl http://localhost:3000/404 -o cat-404.jpg  гуд
+2.Повторний запит аби взяти з кешу
+curl http://localhost:3000/404 -o cat-404-cached.jpg гуд
+3. Різні хттп коди
+curl http://localhost:3000/200 -o cat-200.jpg гуд
+curl http://localhost:3000/500 -o cat-500.jpg гуд
+curl http://localhost:3000/418 -o cat-418.jpg гуд
+4. Те саме, але на не в консолі
+http://localhost:3000/200 гуд
+http://localhost:3000/404 гуд
+http://localhost:3000/500 гуд
