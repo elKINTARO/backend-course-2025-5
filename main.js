@@ -21,10 +21,92 @@ async function ensureCacheDirectory() {
   }
 }
 
-const server = http.createServer((req, res) => {
+function getCacheFilePath(httpCode) {
+  return path.join(options.cache, `${httpCode}.jpg`);
+}
+
+async function handleGet(httpCode, res) {
+  try {
+    const filePath = getCacheFilePath(httpCode);
+    const imageData = await fs.readFile(filePath);
+    
+    res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+    res.end(imageData);
+    console.log(`GET ${httpCode} - успішно отримано з кешу`);
+  } catch (error) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Not Found\n');
+    console.log(`GET ${httpCode} - не знайдено в кеші`);
+  }
+}
+
+async function handlePut(httpCode, req, res) {
+  try {
+    const chunks = [];
+    
+    for await (const chunk of req) {
+      chunks.push(chunk);
+    }
+    
+    const imageData = Buffer.concat(chunks);
+    const filePath = getCacheFilePath(httpCode);
+    
+    await fs.writeFile(filePath, imageData);
+    
+    res.writeHead(201, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Created\n');
+    console.log(`PUT ${httpCode} - збережено в кеш`);
+  } catch (error) {
+    res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Internal Server Error\n');
+    console.error(`PUT ${httpCode} - помилка:`, error);
+  }
+}
+
+async function handleDelete(httpCode, res) {
+  try {
+    const filePath = getCacheFilePath(httpCode);
+    await fs.unlink(filePath);
+    
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('OK\n');
+    console.log(`DELETE ${httpCode} - видалено з кешу`);
+  } catch (error) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Not Found\n');
+    console.log(`DELETE ${httpCode} - не знайдено в кеші`);
+  }
+}
+
+const server = http.createServer(async (req, res) => {
+  const httpCode = req.url.slice(1);
+  
   console.log(`${req.method} ${req.url}`);
-  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-  res.end('Проксі-сервер працює!\n');
+  
+  if (!httpCode || !/^\d{3}$/.test(httpCode)) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Bad Request: Invalid HTTP code. Use format: /200, /404, etc.\n');
+    return;
+  }
+  
+  switch (req.method) {
+    case 'GET':
+      await handleGet(httpCode, res);
+      break;
+      
+    case 'PUT':
+      await handlePut(httpCode, req, res);
+      break;
+      
+    case 'DELETE':
+      await handleDelete(httpCode, res);
+      break;
+      
+    default:
+      res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Method Not Allowed\n');
+      console.log(`${req.method} ${httpCode} - метод не дозволено`);
+  }
 });
 
 async function startServer() {

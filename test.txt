@@ -1,0 +1,13 @@
+Тест для другої частини лабки
+1. завантажити тестову картинку методом пут
+curl -X PUT http://localhost:3000/200 --data-binary "200.jpg"   ---> created
+2. отримати картинку з кешу методом гет
+curl http://localhost:3000/200 -o output.jpg     ---> done
+3. отримати неіснуючу картину методом гет
+curl http://localhost:3000/999  ---> not found
+4. видалити картинку з кешу методом делете
+curl -X DELETE http://localhost:3000/200  ---> OK
+5. спроба отримати видалену картинку методом гет
+curl http://localhost:3000/200  ---> not found
+6. неіснуючий у коді метод пост
+curl -X POST http://localhost:3000/200  ---> method not allowed
