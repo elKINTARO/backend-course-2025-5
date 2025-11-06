@@ -2,7 +2,7 @@ const { program } = require('commander');
 const http = require('http');
 const fs = require('fs').promises;
 const path = require('path');
-const superagent = require('superagent');
+const superagent = require('superagent'); //спрощення надсилання хттп запитів
 //знову ті самі налаштування
 program
   .requiredOption('-H, --host <host>', 'адреса сервера')
@@ -16,25 +16,25 @@ const options = program.opts();
 //створюю директорію для кешу якщо її ще нема(отой какхе)
 async function ensureCacheDirectory() {
   try {
-    await fs.access(options.cache);
+    await fs.access(options.cache); //перевірка існування директорії
   } catch (error) {
-    await fs.mkdir(options.cache, { recursive: true });
+    await fs.mkdir(options.cache, { recursive: true }); //вкладені директорії
     console.log(`Створено директорію кешу: ${options.cache}`);
   }
 }
 
-//отримую тут шлях до файлу кешу якогось хттп коду, картинка котика короч
+// з'єднання частин шляху
 function getCacheFilePath(httpCode) {
   return path.join(options.cache, `${httpCode}.jpg`);
 }
 
-//отримую картинку з сайту хттп котиків
+//завантаження з хттп кат
 async function fetchFromHttpCat(httpCode) {
   try {
     const url = `https://http.cat/${httpCode}`;
     console.log(`Запит до http.cat: ${url}`);
     
-    const response = await superagent.get(url);
+    const response = await superagent.get(url); //ініт гет запиту на урл
     return response.body;
   } catch (error) {
     console.error(`Помилка запиту до http.cat для коду ${httpCode}:`, error.message);
@@ -58,7 +58,7 @@ async function handleGet(httpCode, res) {
     
     const imageData = await fetchFromHttpCat(httpCode);
     
-    if (!imageData) {
+    if (!imageData) { //перевірка на завантаження
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Not Found\n');
       console.log(`GET ${httpCode} - не знайдено на http.cat`);
@@ -68,7 +68,7 @@ async function handleGet(httpCode, res) {
     //збереження котика в кеш
     try {
       const filePath = getCacheFilePath(httpCode);
-      await fs.writeFile(filePath, imageData);
+      await fs.writeFile(filePath, imageData); //збереження в буфер
       console.log(`GET ${httpCode} - збережено в кеш`);
     } catch (cacheError) {
       console.error(`Помилка збереження в кеш:`, cacheError);
@@ -84,13 +84,13 @@ async function handleGet(httpCode, res) {
 //пут - зберегти картинку в кеш
 async function handlePut(httpCode, req, res) {
   try {
-    const chunks = [];
+    const chunks = []; //масив для зберігання шматків даних
     
-    for await (const chunk of req) {
-      chunks.push(chunk);
+    for await (const chunk of req) { //потік з чанками
+      chunks.push(chunk); //шматки в масив
     }
     
-    const imageData = Buffer.concat(chunks);
+    const imageData = Buffer.concat(chunks); //склеювання чанків
     const filePath = getCacheFilePath(httpCode);
     
     await fs.writeFile(filePath, imageData);
@@ -109,7 +109,7 @@ async function handlePut(httpCode, req, res) {
 async function handleDelete(httpCode, res) {
   try {
     const filePath = getCacheFilePath(httpCode);
-    await fs.unlink(filePath);
+    await fs.unlink(filePath); //якщо файл існує то деліт, якщо ні то ерор фс анлінк
     
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('OK\n');
@@ -128,8 +128,7 @@ const server = http.createServer(async (req, res) => {
   
   console.log(`${req.method} ${req.url}`);
   
-  //валідність хттп коду
-  if (!httpCode || !/^\d{3}$/.test(httpCode)) {
+  if (!httpCode || !/^\d{3}$/.test(httpCode)) { //валідація на трицифри коду
     res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Bad Request: Invalid HTTP code. Use format: /200, /404, etc.\n');
     return;
@@ -158,9 +157,9 @@ const server = http.createServer(async (req, res) => {
 
 //запуск
 async function startServer() {
-  await ensureCacheDirectory();
+  await ensureCacheDirectory(); //перевірка директорії
   
-  server.listen(options.port, options.host, () => {
+  server.listen(options.port, options.host, () => { //слухання портів
     console.log(`Сервер запущено на http://${options.host}:${options.port}`);
     console.log(`Директорія кешу: ${options.cache}`);
   });
